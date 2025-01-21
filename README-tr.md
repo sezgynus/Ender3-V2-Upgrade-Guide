@@ -10,7 +10,7 @@
 
 ## 🚀 Mevcut Yükseltmeler
 
-### 1. [**BFPTouch Sensör Kurulumu**](./BFPTouch_Sensor)
+### [1. **BFPTouch Sensör Kurulumu**](./BFPTouch_Sensor)
 3D yazıcınızı daha iyi baskı kalitesi ve kullanım kolaylığı için otomatik tabla hizalama özelliği ile geliştirin.
 
 - **Özellikler**: Daha tutarlı ilk katman, zahmetsiz tabla hizalama.
@@ -20,7 +20,7 @@
   - Kablolama diyagramları
   - Referans için fotoğraflar
 
-### 2. [**Kasa Işığı Aktivasyonu ve LED Çıkışı Modifikasyonu**](./Case_Light)
+### [2. **Kasa Işığı Aktivasyonu ve LED Çıkışı Modifikasyonu**](./Case_Light)
 Çalışma alanınızı aydınlatın ve ana kartı LED kontrolü için modifiye edin.
 
 - **Özellikler**: Daha iyi baskı görünürlüğü için entegre aydınlatma.
@@ -38,7 +38,7 @@
   - Devre şemaları
   - Kurulum fotoğrafları
 
-### 3. [**Filament Sensörü Kurulumu**](./Filament_Sensor)
+### [3. **Filament Sensörü Kurulumu**](./Filament_Sensor)
 Filament bittiğinde veya kırıldığında bunu algılayan bir filament sensörü kurarak başarısız baskılardan kaçının.
 
 - **Özellikler**: Gerçek zamanlı filament izleme.
