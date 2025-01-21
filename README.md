@@ -9,7 +9,7 @@ Welcome to the **Ender 3 V2 Upgrade Guide**! This repository provides detailed i
 
 ## 🚀 Available Upgrades
 
-### 1. [**BFPTouch Sensor Installation**](./BFPTouch_Sensor)
+### [1. **BFPTouch Sensor Installation**](./BFPTouch_Sensor)
 Enhance your 3D printer with automatic bed leveling for better print quality and ease of use.
 
 - **Features**: Improved first-layer consistency, hassle-free bed leveling.
@@ -19,7 +19,7 @@ Enhance your 3D printer with automatic bed leveling for better print quality and
   - Wiring diagrams
   - Photos for reference
 
-### 2. [**Case Light Activation and LED Output Modification**](./Case_Light)
+### [2. **Case Light Activation and LED Output Modification**](./Case_Light)
 Illuminate your workspace and modify the mainboard for LED control.
 
 - **Features**: Integrated lighting for better print visibility.
@@ -37,7 +37,7 @@ Illuminate your workspace and modify the mainboard for LED control.
   - Circuit diagrams
   - Photos of the setup
 
-### 3. [**Filament Sensor Installation**](./Filament_Sensor)
+### [3. **Filament Sensor Installation**](./Filament_Sensor)
 Avoid failed prints by installing a filament sensor to detect when filament runs out or breaks.
 
 - **Features**: Real-time filament monitoring.
