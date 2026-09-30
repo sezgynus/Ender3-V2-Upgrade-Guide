@@ -1,93 +1,115 @@
-# Language Selection
-[English](README.md) | [Türkçe](README-tr.md)
+# BFPTouch Sensor Installation — Ender 3 V2
 
-# BFPTouch Sensor Installation for Ender3 V2
+[English](README.md) | [Türkçe](README-tr.md) | [← Main Guide](../README.md)
 
-![Demo](Photos/2.gif)
+![BFPTouch demonstration](Photos/2.gif)
 
-This guide provides detailed instructions to install and configure a low-budget BLTouch clone, the BFPTouch, on your Ender3 V2 printer. The BFPTouch replicates BLTouch functionality and is designed for cost-effective 3D printing enhancements. Follow this guide to achieve successful hardware installation and software configuration.
+This guide documents the BFPTouch installation implemented on an Ender 3 V2. The modification provides BLTouch-style probing with a **3D-printed mount**, **SG90 servo motor**, and **optical endstop**, while retaining the hardware and firmware differences of the controller-less BFPTouch design.
 
----
+## At a Glance
 
-## Overview
+| Area | Implementation |
+|---|---|
+| Target printer | Creality Ender 3 V2 |
+| Probe concept | BFPTouch / BLTouch-style bed probing |
+| Actuator | SG90 servo |
+| Detection | Optical endstop |
+| Mount | 3D printed, tight-fit installation |
+| Mainboard connections | V, G, IN, OUT |
+| Firmware paths | Pre-configured firmware or manual Marlin configuration |
 
-The BFPTouch is a budget-friendly alternative to the BLTouch and is designed to work seamlessly with the Ender3 V2. It leverages a 3D-printed mount, a small SG90 servo motor, and an optical endstop to emulate BLTouch capabilities. By printing the mount and completing a few straightforward steps, you can integrate the BFPTouch into your printer setup.
+## How the BFPTouch Differs from BLTouch
 
----
+A BLTouch contains onboard control electronics. Servo-angle commands sent by the printer are interpreted as operational commands by the sensor.
 
-## Required Materials
-
-To complete this modification, you will need the following:
-
-- **3D-Printed BFPTouch Mount**
-  - Download the mount from Thingiverse: [https://www.thingiverse.com/thing:6918868](https://www.thingiverse.com/thing:6918868)
-  - Print the mount using PLA or PETG for best results.
-- **1 x SG90 Servo Motor**
-- **1 x Optical Endstop**
-- **Soldering Tools**: Soldering iron, solder, and flux (if needed).
-- **Basic Tools**: Screwdrivers, pliers, and cable ties.
-
----
-
-## Hardware Installation
-
-1. **Print the BFPTouch Mount**:
-   - Download the 3D model from the provided Thingiverse link.
-   - Print the model using your preferred 3D printer. Ensure the print quality is high to allow proper component fitting.
-
-2. **Assemble the Components**:
-   - Insert the SG90 servo motor into its designated slot in the printed mount.
-   - Secure the optical endstop in the provided slot.
-   - Route the wires neatly to prevent interference with printer movement.
-
-3. **Mount the BFPTouch to the Printer**:
-  - Attach the printed mount with the installed components to your Ender3 V2 using a tight-fit design instead of screws.
-   - Ensure the mount is securely in place with the tight-fitting design.
-
-     <img src="Photos/4.jpg" width="200" />  <img src="Photos/2.jpg" width="200" /> <img src="Photos/3.gif" width="266" />
-   
-4. **Connect the Wiring**:
-   - Follow the wiring connections below to complete the setup:
-
-     ```
-     +------------------+-----------------------------+
-     | Mainboard Pin    | BFPTouch Pin                |
-     +------------------+-----------------------------+
-     | V                | SG90 VCC, Optic Endstop VCC |
-     | G                | SG90 GND, Optic Endstop GND |
-     | IN               | SG90 PWM Signal             |
-     | OUT              | Optic Endstop Output        |
-     +------------------+-----------------------------+
-     ```
-   - Ensure all connections are secure and insulated to avoid short circuits.
-
----
-
-## Why Special Configuration is Required for BFPTouch?
-
-Normally, the working principle of the BFPTouch differs from that of the BLTouch. The BLTouch interprets certain servo signal angles from the mainboard not as direct angle commands but as instructions for specific operations, thanks to a microcontroller on the sensor. Below is a visual representation showing which angle values correspond to which commands for the BLTouch:
+The BFPTouch used here has no onboard controller. The mainboard's servo signal therefore controls the **SG90 angle directly**. Angles intended as BLTouch commands can consequently move the BFPTouch mechanism into unwanted positions or cause mechanical interference.
 
 <img src="Photos/6.png" width="800" />
 
-In contrast, the BFPTouch lacks any onboard controller, and the servo signal received from the mainboard directly controls the angle of the SG90 servo motor. Due to the mechanical design of the BFPTouch, the angle values corresponding to BLTouch commands can result in unintended mechanical collisions. Therefore, we need to adjust certain configurations in the firmware to make it compatible with the BFPTouch.
+For this reason, the BFPTouch requires firmware behavior compatible with its direct servo actuation rather than assuming standard BLTouch command-angle behavior.
 
----
+## Required Hardware
 
-## Software Configuration
+- **3D-printed BFPTouch mount**
+  - Model: [Thingiverse 6918868](https://www.thingiverse.com/thing:6918868)
+  - PLA or PETG can be used.
+- **1 × SG90 servo motor**
+- **1 × optical endstop**
+- Soldering iron, solder and flux as required
+- Screwdrivers, pliers and cable ties
 
-There are two methods to configure your Ender3 V2 firmware for BFPTouch functionality:
+## Hardware Installation
 
-### Option 1: Use Pre-Compiled Firmware
+### 1. Print the Mount
 
-Download and flash the pre-configured firmware from the provided repository link. This is the simplest method for most users.
+Print the referenced BFPTouch mount with sufficient dimensional quality for the servo, optical endstop and tight-fit printer attachment.
 
-Repository Link: [https://github.com/sezgynus/Ender3V2S1](https://github.com/sezgynus/Ender3V2S1)
+### 2. Assemble the Probe
 
-### Option 2: Manually Configure Marlin Firmware
+Install the SG90 servo and optical endstop in their corresponding locations. Route the wiring so that it cannot interfere with printer motion.
 
-If you prefer to configure and build the firmware yourself, follow the detailed instructions provided in the next section. Ensure you have the Marlin source code and a compatible build environment ready.
+### 3. Install on the Printer
 
----
+Attach the assembled BFPTouch to the Ender 3 V2 using the mount's tight-fit design and verify that the assembly is mechanically secure.
 
-Stay tuned for the next steps to complete your BFPTouch installation and software setup!
+<p>
+  <img src="Photos/4.jpg" width="200" />
+  <img src="Photos/2.jpg" width="200" />
+  <img src="Photos/3.gif" width="266" />
+</p>
 
+### 4. Connect the Mainboard
+
+| Mainboard pin | BFPTouch connection |
+|---|---|
+| V | SG90 VCC + optical endstop VCC |
+| G | SG90 GND + optical endstop GND |
+| IN | SG90 PWM signal |
+| OUT | Optical endstop output |
+
+Verify the connections and insulation before applying power.
+
+## Firmware Configuration
+
+Two firmware paths are documented for this modification.
+
+### Option 1 — Pre-configured Firmware
+
+A pre-configured firmware implementation is available in the separate [Ender3V2S1 repository](https://github.com/sezgynus/Ender3V2S1).
+
+This path avoids reproducing the firmware changes manually.
+
+### Option 2 — Manual Marlin Configuration
+
+The BFPTouch requires Marlin configuration compatible with the direct SG90 actuation described above. The repository establishes the hardware requirements and the reason standard BLTouch servo-angle assumptions cannot be used unchanged.
+
+The detailed manual Marlin parameter set is **not present in this repository**, so values that are not documented here are intentionally not inferred.
+
+## Verification Material
+
+The repository contains several photographs and GIF demonstrations of the implemented probe:
+
+| Asset | Purpose |
+|---|---|
+| `Photos/1.gif` | BFPTouch demonstration |
+| `Photos/2.gif` | Main demonstration shown at the top of this guide |
+| `Photos/1.jpg`–`Photos/5.jpg` | Physical installation references |
+| `Photos/3.gif` | Close installation/mechanical reference |
+| `Photos/6.png` | BLTouch command/angle reference used to explain the control difference |
+
+## Safety and Mechanical Checks
+
+Before homing or probing:
+
+- verify that the probe can deploy and retract without colliding with the printer;
+- confirm that the optical endstop changes state correctly;
+- ensure the wiring cannot enter the motion path;
+- test servo movement conservatively before relying on automatic Z movement.
+
+The direct servo-control difference is important: firmware settings intended for another probe mechanism should not be assumed mechanically safe without verification.
+
+## Project Scope
+
+This sub-guide documents the BFPTouch hardware implementation and the firmware approach supported by the material currently stored in the repository. It does not add undocumented calibration values or Marlin parameters.
+
+[← Return to the main upgrade guide](../README.md)

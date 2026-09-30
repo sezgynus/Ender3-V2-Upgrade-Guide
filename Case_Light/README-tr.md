@@ -1,171 +1,209 @@
+# Kasa Işığı Kontrolü — Ender 3 V2
 
-# Dil Seçimi
-[English](README.md) | [Türkçe](README-tr.md)
+[English](README.md) | [Türkçe](README-tr.md) | [← Ana Kılavuz](../README-tr.md)
 
-# Ender3 V2 için Kasa Işığı Aktifleştirme
+Bu kılavuz, Ender 3 V2 anakartına **firmware kontrollü 24 V kasa aydınlatması** ekleyen donanım modifikasyonunu belgeler. Uygulamada MCU'nun **PA3** pini yeniden kullanılır, sinyal kullanılmayan bir HC245 kanalından geçirilir ve LED yükü harici bir N-channel MOSFET ile sürülür.
 
-Bu kılavuz, Ender3 V2 ana kartını modifiye ederek kasa ışığı kontrolü eklemenin detaylı talimatlarını sunar. Bu işlemin temel elektronik bilgisi ve lehimleme becerisi gerektirdiğini unutmayın. Devam etmek kendi sorumluluğunuzdadır; donanım hasarı meydana gelebilir ve bu modifikasyonlardan kaynaklanan sorunlardan sorumlu değiliz.
+> **Donanım modifikasyonu:** işlem doğrudan yazıcı anakartına lehimleme gerektirir. Anakart üzerinde çalışmadan önce tüm gücü kesin ve enerji vermeden önce bütün bağlantıları doğrulayın.
 
----
+## Hızlı Bakış
 
-## Genel Bakış
+| Alan | Uygulama |
+|---|---|
+| Hedef yazıcı | Creality Ender 3 V2 |
+| Firmware | Marlin |
+| MCU kontrol pini | PA3 |
+| Buffer | Kullanılmayan HC245 kanalı |
+| MOSFET gate direnci | 10 Ω |
+| Gate pulldown | 100 kΩ |
+| LED beslemesi | 24 V |
+| Kontrol komutu | `M355` |
+| Parlaklık aralığı | 0–255 |
+| Opsiyonel fast PWM | 31,4 kHz |
 
-Ender3 V2 ana kartı doğrudan kasa ışığı çıkışı desteklemez. Ancak, Marlin firmware bu işlevi destekler. Bazı donanım değişiklikleri yaparak kullanılmayan bir işlemci pinini LED aydınlatmayı kontrol etmek için kullanabiliriz. Bu amaçla kullanacağımız spesifik pin **PA3** olacaktır.
+## Tasarım
 
----
+Ender 3 V2 anakartında özel bir kasa ışığı çıkışı bulunmaz; buna karşılık Marlin kasa ışığı kontrolünü destekler. Modifikasyon, kullanılmayan bir işlemci sinyali etrafına gerekli güç çıkış katını ekler.
 
-## Gerekli Malzemeler
+```text
+MCU PA3
+   │
+   ▼
+RP6 direnç ağı
+   │
+   ▼
+Kullanılmayan HC245 kanalı
+   │
+   ▼
+10 Ω seri direnç
+   │
+   ▼
+N-channel MOSFET gate
+   │
+   ├── 100 kΩ pulldown → GND
+   │
+   ▼
+24 V LED yükü
+```
 
-Bu modifikasyonu tamamlamak için aşağıdaki bileşenlere ihtiyacınız olacak:
+![Modifikasyon şeması](HW_Modifications/Modification_Schemetic.png)
 
-- **1 x 100k Direnç**
-- **1 x 10Ω Direnç**
-- **1 x N-Channel MOSFET** (en az 30V Drain-Source Voltage'a sahip):
-  - Tavsiye Edilen: HY1403 (Ender3 V2 üzerinde hotend ve heated bed devrelerinde kullanılır).
-  - Alternatif: FR024N (daha kolay temin edilebilir ve bu uygulama için eşit derecede uygundur).
-- **Lehimleme Araçları**: Havya, lehim ve flux.
-- **Opsiyonel**: MOSFET entegrasyonu için bir breakout kart.
-- **Önemli Not**: Bu modifikasyonda kullanılacak LED ışık 24V ile çalışmalıdır çünkü MOSFET, 24V hattından gelen gücü kontrol eder.
+Depoda kart referansı olarak kullanılan Creality 4.2.2 şeması da `Diagrams/Creality.4.2.2.-.Schematic.pdf` altında bulunmaktadır.
 
----
+## Gerekli Bileşenler
 
-## Donanım Değişiklikleri
+- **1 × 100 kΩ direnç**
+- **1 × 10 Ω direnç**
+- **1 × N-channel MOSFET**, en az 30 V drain-source gerilim değerine sahip
+  - HY1403: Ender 3 V2 üzerinde ısıtıcı anahtarlamada da kullanılan MOSFET tipi
+  - FR024N: belgelenmiş alternatif
+- Havya, lehim ve flux
+- MOSFET için isteğe bağlı breakout kart
+- **24 V LED aydınlatma**
 
-1. **Devre Şeması**:  
-   Modifikasyon şeması aşağıda gösterilmiştir:
-   
-   ![Modification Schematic](HW_Modifications/Modification_Schemetic.png)
-   
-   - Şemadaki kırmızı çizgiler ana karta eklemeniz gereken bağlantıları gösterir.
+Belgelenen devre 24 V hattını anahtarladığından bağlanan aydınlatmanın 24 V çalışmaya uygun olması gerekir.
 
-2. **MOSFET Seçimi**:
-   - Eğer Ender3 V2 üzerinde kullanılan HY1403 MOSFET'lere erişiminiz varsa, bunlar idealdir.
-   - Alternatif olarak, daha kolay temin edilebilen FR024N MOSFET'i kullanabilirsiniz.
+## Donanım Modifikasyonu
 
-3. **Entegrasyon**:  
-   MOSFET'i kasa ışığı aktifleştirme için entegre etmek için şu adımları izleyin:
+### 1. PA3 Bağlantısı
 
-   1. **PA3 Pin Bağlantısı**: MCU'nun PA3 pininden bir kabloyu RP6 direnç paketinin boş kanalına bağlayın.
-   
-   2. **Bus Transceiver Bağlantısı**: RP6 direnç paketinin boş kanalından bir kabloyu HC245 bus transceiver'ın kullanılmayan bir kanalına (tercihen A3 pin, A3 seçilirse çıkış olara B3 kullanılacak) bağlayın.
+MCU'nun **PA3** sinyalini RP6 direnç ağının boş kanalına taşıyın.
 
-   3. **Seri Direnç**: Seçilen kanalın (A3 ise B3) çıkış tarafına 10Ω direnç bağlayın.
+### 2. HC245 Bağlantısı
 
-   4. **MOSFET Gate Bağlantısı**: 10Ω direncin diğer ucunu MOSFET'in gate pinine bağlayın.
+RP6'dan gelen sinyali HC245 transceiver'ın kullanılmayan bir kanalından geçirin. Belgelenen uygulamada uygun olduğunda A3/B3 kanal çifti tercih edilir.
 
-   5. **Pulldown Resistor**: MOSFET gate'ine 100kΩ pulldown resistor ekleyin.
+### 3. Gate Seri Direnci
 
-   6. **Source Pin Bağlantısı**: MOSFET'in source pinini GND'ye bağlayın.
+HC245 çıkışını **10 Ω** seri direnç üzerinden MOSFET gate'ine bağlayın.
 
-   7. **Drain Pin Bağlantısı**: MOSFET'in drain pinini LED'in negatif terminaline bağlayın.
+### 4. Gate Pulldown
 
-   8. **LED Güç Bağlantısı**: LED'in pozitif terminalini doğrudan 24V'ye bağlayın. LED'in 24V çalışmaya uygun olduğundan emin olun çünkü bu modifikasyon ışıklandırma için 24V gücü anahtarlamaktadır.
-   
----
+MOSFET gate ile GND arasına **100 kΩ** pulldown direnç bağlayın.
+
+### 5. MOSFET Güç Yolu
+
+- MOSFET source → GND
+- MOSFET drain → LED negatif terminali
+- LED pozitif terminali → 24 V
+
+### 6. Enerji Vermeden Önce Doğrulama
+
+Güç vermeden önce eklenen bütün bağlantıları modifikasyon şemasıyla karşılaştırın.
 
 ## Montaj Referansı
 
-Montajın tamamlanmış haline ilişkin fotoğraflar size yardımcı olacaktır:
+![Genel modifikasyon kurulumu](Photos/1.jpg)
 
-![Fotoğraf 1: Genel modifikasyon kurulumu](Photos/1.jpg)
+![Lehimleme detaylarının yakın görünümü](Photos/2.jpg)
 
-![Fotoğraf 2: Lehimleme detaylarının yakın çekimi](Photos/2.jpg)
+Fotoğraflar MOSFET gate'ine kadar olan bağlantıları göstermektedir. Belgelenen uygulamada MOSFET'in kendisi flying lead/uzay montaj ile bağlandığından bu fotoğraflarda görünmez.
 
-**Not**: Bu görüntüler, MOSFET gate'ine kadar olan bağlantıları göstermektedir. MOSFET'in kendisi uzay montaj bağlanmıştır, bu yüzden görüntülerde görünmemektedir.
+## Firmware Yapılandırması
 
----
+İki firmware yolu kullanılabilir.
 
-## Yazılım Yapılandırması
+### Seçenek 1 — Önceden Yapılandırılmış Firmware
 
-Kasa ışığı işlevselliğini Marlin firmware'de aktifleştirmek için aşağıdaki iki seçeneği takip edin:
+Gerekli yapılandırmayı içeren firmware ayrı [Ender3V2S1 deposunda](https://github.com/sezgynus/Ender3V2S1) referans verilmiştir.
 
-### Seçenek 1: Repodaki Önceden Yapılandırılmış Firmware'i Kullan
+### Seçenek 2 — Manuel Marlin Yapılandırması
 
-Bu ayarlarla önceden yapılandırılmış firmware'i kullanabilirsiniz. Repodaki firmware'i indirin, Ender3 V2'nize yükleyin ve kasa ışığı kontrolü hazır hale gelir.
+Manuel yapılandırma için aşağıdaki ayarlar belgelenmiştir.
 
-Repo Bağlantısı: [https://github.com/sezgynus/Ender3V2S1](https://github.com/sezgynus/Ender3V2S1)
+#### 1. Kasa Işığını Etkinleştirin
 
-### Seçenek 2: Firmware'i Manuel Olarak Yapılandır ve Derle
+`Configuration_adv.h` içinde:
 
-Kasa ışığı aktifleştirme için Marlin firmware'i yapılandırmak üzere şu adımları takip edin:
+```cpp
+//#define CASE_LIGHT_ENABLE
+#define CASE_LIGHT_ENABLE
+```
 
-1. **Kasa Işığı İşlevini Aktifleştirme**
+#### 2. PA3 Pinini Atayın
 
-   `Configuration_adv.h` dosyasını açın ve aşağıdaki satırı değiştirerek kasa ışığı işlevini aktifleştirin:
-   ```cpp
-   //#define CASE_LIGHT_ENABLE
-   #define CASE_LIGHT_ENABLE
-   ```
+```cpp
+//#define CASE_LIGHT_PIN 4
+#define CASE_LIGHT_PIN PA3
+```
 
-2. **Kasa Işığı Pinini Ayarlama**
+#### 3. Menü Kontrolünü Etkinleştirin
 
-   Kasa ışığı için pini tanımlayın. Aynı dosyada şu satırı değiştirin:
-   ```cpp
-   //#define CASE_LIGHT_PIN 4
-   #define CASE_LIGHT_PIN PA3
-   ```
+```cpp
+//#define CASE_LIGHT_MENU
+#define CASE_LIGHT_MENU
+```
 
-3. **Menüde Kasa Işığını Aktifleştirme**
+Menü kontrolü etkinleştirildiğinde:
 
-   Kasa ışığını menü üzerinden kontrol etmek istiyorsanız, bu seçeneği şu şekilde etkinleştirin:
-   ```cpp
-   //#define CASE_LIGHT_MENU
-   #define CASE_LIGHT_MENU
-   ```
-   Bu özelliği etkinleştirirseniz, menüler aşağıdaki gibi görünecektir:
-   <div style="display: flex; justify-content: space-between;"> <img src="Photos/6.jpg" width="45%" /> <img src="Photos/7.jpg" width="45%" /> </div>
+<p>
+  <img src="Photos/6.jpg" width="45%" />
+  <img src="Photos/7.jpg" width="45%" />
+</p>
 
-4. **Opsiyonel: Fast PWM'i Etkinleştirme (Titreşim Azaltır)**
+#### 4. Opsiyonel Fast PWM
 
-   Düşük parlaklık seviyelerinde özellikle titreşimi azaltmak için yüksek PWM frekansını etkinleştirin:
-   ```cpp
-   //#define FAST_PWM_FAN
-   #define FAST_PWM_FAN
-   ```
+Düşük parlaklıkta görülebilen titreşimi azaltmak için:
 
-5. **PWM Frekansını Ayarlama**
+```cpp
+//#define FAST_PWM_FAN
+#define FAST_PWM_FAN
+```
 
-   Bir önceki adımda fast PWM'i etkinleştirdiyseniz, doğru frekansı ayarlamak için şu satırı etkinleştirin:
-   ```cpp
-   //#define FAST_PWM_FAN_FREQUENCY 31400
-   #define FAST_PWM_FAN_FREQUENCY 31400
-   ```
+#### 5. Fast PWM Frekansını Ayarlayın
 
-6. **Kasa Işığının Varsayılan Durumunu Ayarlama**
+```cpp
+//#define FAST_PWM_FAN_FREQUENCY 31400
+#define FAST_PWM_FAN_FREQUENCY 31400
+```
 
-   Kasa ışığının yazıcı açıldığında varsayılan olarak açık mı kapalı mı olacağını tanımlayın:
-   ```cpp
-   #define CASE_LIGHT_DEFAULT_ON true
-   #define CASE_LIGHT_DEFAULT_ON false
-   ```
+Bu ayar belgelenen **31,4 kHz** PWM frekansını yapılandırır.
 
-   **Açıklama**:  
-   - Yazıcı açıldığında ışığın otomatik olarak açılmasını istiyorsanız, `true` olarak bırakın.
-   - Yazıcı açıldığında ışığın kapalı kalmasını istiyorsanız, `false` olarak değiştirin.
+#### 6. Başlangıç Durumunu Ayarlayın
 
-7. **Kasa Işığının Varsayılan Parlaklık Seviyesini Ayarlama**
+```cpp
+#define CASE_LIGHT_DEFAULT_ON true
+#define CASE_LIGHT_DEFAULT_ON false
+```
 
-   Kasa ışığının başlangıç parlaklık seviyesini ayarlayın:
-   ```cpp
-   #define CASE_LIGHT_DEFAULT_BRIGHTNESS 105
-   #define CASE_LIGHT_DEFAULT_BRIGHTNESS 255
-   ```
+İstenen değeri kullanın: `true` ışığı başlangıçta açar, `false` kapalı başlatır.
 
-   **Açıklama**:  
-   - `0` değeri minimum parlaklığı temsil eder.
-   - `255` değeri maksimum parlaklığı temsil eder.
-   - Parlaklığı tercihinize göre ayarlayabilirsiniz.
+#### 7. Varsayılan Parlaklığı Ayarlayın
 
-Bu değişiklikler yapıldıktan sonra dosyayı kaydedin ve yazıcınız için firmware'i derlemeye devam edin. Güncellenmiş firmware'i yükleyerek kasa ışığı kontrolünü etkinleştirin.
+```cpp
+#define CASE_LIGHT_DEFAULT_BRIGHTNESS 105
+#define CASE_LIGHT_DEFAULT_BRIGHTNESS 255
+```
 
----
+Geçerli parlaklık aralığı **0–255**'tir.
 
-## Notlar ve Uyarılar
+## G-code Kontrolü
 
-- Ana kartın kapalı olduğundan ve tüm güç kaynaklarından bağlantısının kesildiğinden emin olun.
-- Yazıcıyı açmadan önce tüm bağlantıları şemaya bakarak iki kere kontrol edin.
-- Hatalı kurulum veya arızalı bileşenler ana kartınıza zarar verebilir.
+Marlin kasa ışığı kontrolünü `M355` üzerinden sağlar:
 
----
+```text
+M355 [P<byte>] [S<bool>]
+```
 
-Bu kılavuzu takip ederek Ender3 V2 yazıcınızda kasa ışığı kontrolünü başarıyla etkinleştirebilirsiniz. Herhangi bir sorunla karşılaşırsanız veya iyileştirme önerileriniz varsa, depoya katkıda bulunmaktan veya bir sorun bildirmekten çekinmeyin. Keyifli baskılar!
+- `P<byte>`: parlaklık, 0–255
+- `S<bool>`: açık/kapalı durumu
+
+Bu sayede ışık manuel olarak, komutu destekleyen yazıcı arayüzlerinden veya baskı akışına eklenen G-code üzerinden kontrol edilebilir.
+
+## Doğrulama Kontrol Listesi
+
+Normal kullanımdan önce:
+
+- PA3-HC245 sinyal yolunu şemayla karşılaştırın;
+- 10 Ω gate direncini ve 100 kΩ pulldown direncini doğrulayın;
+- MOSFET source, drain ve gate bağlantılarını kontrol edin;
+- LED yükünün 24 V için uygun olduğunu doğrulayın;
+- lehim köprüsü ve istenmeyen kısa devre olmadığını kontrol edin;
+- parlaklık kontrolüne geçmeden önce aç/kapat işlevini test edin;
+- yapılandırılmış firmware yüklendikten sonra `M355` ve menü davranışını doğrulayın.
+
+## Güvenlik
+
+Hatalı kablolama anakarta veya bağlı aydınlatmaya zarar verebilir. Tüm lehimleme işlemlerini yazıcının güç bağlantısı kesilmişken yapın. Belgelenen MOSFET gerilim değeri ve 24 V yük gereksinimi, isteğe bağlı öneriler yerine minimum tasarım koşulları olarak değerlendirilmelidir.
+
+[← Ana yükseltme kılavuzuna dön](../README-tr.md)

@@ -1,171 +1,209 @@
-# Language Selection
-[English](README.md) | [Türkçe](README-tr.md)
+# Case Light Control — Ender 3 V2
 
-# Case Light Activation for Ender3 V2
+[English](README.md) | [Türkçe](README-tr.md) | [← Main Guide](../README.md)
 
-This guide provides detailed instructions to modify your Ender3 V2 mainboard to enable case lighting control. Note that this process requires basic electronics knowledge and soldering skills. Proceed at your own risk, as hardware damage may occur, and we are not responsible for any issues arising from these modifications.
+This guide documents a hardware modification that adds **firmware-controlled 24 V case lighting** to an Ender 3 V2 mainboard. The implementation repurposes the MCU's **PA3** pin, routes it through an unused HC245 channel, and drives the LED load with an external N-channel MOSFET.
 
----
+> **Hardware modification:** this procedure requires soldering directly to the printer mainboard. Disconnect all power before working on the board and verify every connection before power-up.
 
-## Overview
+## At a Glance
 
-The Ender3 V2 mainboard does not natively support a case light output. However, the Marlin firmware includes support for this functionality. By making some hardware modifications, we can repurpose an unused processor pin to control LED lighting. The specific pin we will use for this purpose is **PA3**.
+| Area | Implementation |
+|---|---|
+| Target printer | Creality Ender 3 V2 |
+| Firmware | Marlin |
+| MCU control pin | PA3 |
+| Buffer | Unused HC245 channel |
+| MOSFET gate resistor | 10 Ω |
+| Gate pulldown | 100 kΩ |
+| LED supply | 24 V |
+| Control command | `M355` |
+| Brightness range | 0–255 |
+| Optional fast PWM | 31.4 kHz |
 
----
+## Design
 
-## Required Materials
+The Ender 3 V2 mainboard does not expose a dedicated case-light output, while Marlin already provides case-light control. The modification therefore adds the missing power-output stage around an unused processor signal.
 
-To complete this modification, you will need the following components:
+```text
+MCU PA3
+   │
+   ▼
+RP6 resistor network
+   │
+   ▼
+Unused HC245 channel
+   │
+   ▼
+10 Ω series resistor
+   │
+   ▼
+N-channel MOSFET gate
+   │
+   ├── 100 kΩ pulldown → GND
+   │
+   ▼
+24 V LED load
+```
 
-- **1 x 100k Resistor**
-- **1 x 10Ω Resistor**
-- **1 x N-Channel MOSFET** (with at least 30V Drain-Source Voltage):
-  - Recommended: HY1403 (used on the Ender3 V2 for hotend and hotbed heating circuits).
-  - Alternative: FR024N (easier to source and equally suitable for this application).
-- **Soldering Tools**: Soldering iron, solder, and flux.
-- **Optional**: A breakout board for easier MOSFET integration.
-- **Important Note**: The LED light used in this modification must operate on 24V, as the MOSFET controls the power from the 24V rail.
+![Modification schematic](HW_Modifications/Modification_Schemetic.png)
 
----
+The repository also contains the Creality 4.2.2 schematic used as a board reference in `Diagrams/Creality.4.2.2.-.Schematic.pdf`.
 
-## Hardware Modifications
+## Required Components
 
-1. **Circuit Schematic**:  
-   The modification schematic is shown below:
-   
-   ![Modification Schematic](HW_Modifications/Modification_Schemetic.png)
-   
-   - The red lines in the schematic indicate the connections you need to add to the mainboard.
+- **1 × 100 kΩ resistor**
+- **1 × 10 Ω resistor**
+- **1 × N-channel MOSFET**, rated for at least 30 V drain-source voltage
+  - HY1403: device type already used on the Ender 3 V2 for heater switching
+  - FR024N: documented alternative
+- Soldering iron, solder and flux
+- Optional breakout board for the MOSFET
+- **24 V LED lighting**
 
-2. **MOSFET Selection**:
-   - If you have access to the HY1403 MOSFETs used on the Ender3 V2 for other functions, they are ideal.
-   - Alternatively, use the FR024N MOSFET, which is more readily available.
+The documented circuit switches the 24 V rail, so the connected lighting must be suitable for 24 V operation.
 
-3. **Integration**:  
-   Follow these steps to integrate the MOSFET for case light activation:
+## Hardware Modification
 
-   1. **PA3 Pin Connection**: From the MCU's PA3 pin, route a wire to the empty channel of the RP6 package resistor.
-   
-   2. **Bus Transceiver Connection**: From the empty channel of the RP6 resistor, connect a wire to one of the unused channels of the HC245 bus transceiver (A3 pin is preferred, but B3 can be used if A3 is occupied).
+### 1. PA3 Connection
 
-   3. **Series Resistor**: On the output side of the chosen channel (A3 or B3), attach a series 10Ω resistor.
+Route the MCU's **PA3** signal to the empty channel of the RP6 resistor network.
 
-   4. **MOSFET Gate Connection**: Connect the other end of the 10Ω resistor to the MOSFET's gate pin.
+### 2. HC245 Connection
 
-   5. **Pulldown Resistor**: Attach a 100kΩ pulldown resistor to the MOSFET gate.
+Route the signal from RP6 through an unused HC245 transceiver channel. The documented implementation prefers the A3/B3 channel pair when available.
 
-   6. **Source Pin Connection**: Connect the MOSFET's source pin to GND.
+### 3. Gate Series Resistor
 
-   7. **Drain Pin Connection**: Connect the MOSFET's drain pin to the negative terminal of the LED.
+Connect the HC245 output to the MOSFET gate through a **10 Ω** series resistor.
 
-   8. **LED Power Connection**: Connect the positive terminal of the LED directly to 24V. Ensure the LED is rated for 24V operation, as this modification switches the 24V power for the lighting.
-   
----
+### 4. Gate Pulldown
+
+Connect a **100 kΩ** pulldown resistor between the MOSFET gate and GND.
+
+### 5. MOSFET Power Path
+
+- MOSFET source → GND
+- MOSFET drain → LED negative terminal
+- LED positive terminal → 24 V
+
+### 6. Verify Before Power-Up
+
+Compare all added connections with the modification schematic before applying power.
 
 ## Assembly Reference
 
-Photos of the completed assembly are provided to assist you:
+![Overall modification setup](Photos/1.jpg)
 
-![Photo 1: Overall modification setup](Photos/1.jpg)
+![Close-up of soldering details](Photos/2.jpg)
 
-![Photo 2: Close-up of soldering details](Photos/2.jpg)
+The photographs show the connections up to the MOSFET gate. In the documented implementation, the MOSFET itself is connected using flying leads and is therefore not visible in these photographs.
 
-**Note**: These images show the connections up to the MOSFET gate. The MOSFET itself has been mounted using a flying lead (air-wired), which is why it is not visible in the images.
+## Firmware Configuration
 
----
+Two firmware paths are available.
 
-## Software Configuration
+### Option 1 — Pre-configured Firmware
 
-To enable the case light functionality in Marlin firmware, follow one of the two options below:
+A firmware build containing the required configuration is referenced in the separate [Ender3V2S1 repository](https://github.com/sezgynus/Ender3V2S1).
 
-### Option 1: Use the Pre-configured Firmware from the Repository
+### Option 2 — Manual Marlin Configuration
 
-You can use the pre-configured firmware with these settings. Simply download the firmware from the repository linked below, flash it to your Ender3 V2, and the case light control will be ready.
+The following settings are documented for manual configuration.
 
-Repository Link: [https://github.com/sezgynus/Ender3V2S1](https://github.com/sezgynus/Ender3V2S1)
+#### 1. Enable Case Light
 
-### Option 2: Manually Configure and Build the Firmware
+In `Configuration_adv.h`:
 
-Follow these steps to configure the Marlin firmware for case light activation:
+```cpp
+//#define CASE_LIGHT_ENABLE
+#define CASE_LIGHT_ENABLE
+```
 
-1. **Enable Case Light Functionality**
+#### 2. Assign PA3
 
-   Open the `Configuration_adv.h` file and enable case light functionality by changing the following line:
-   ```cpp
-   //#define CASE_LIGHT_ENABLE
-   #define CASE_LIGHT_ENABLE
-   ```
+```cpp
+//#define CASE_LIGHT_PIN 4
+#define CASE_LIGHT_PIN PA3
+```
 
-2. **Set the Case Light Pin**
+#### 3. Enable Menu Control
 
-   Define the pin for the case light. In the same file, change:
-   ```cpp
-   //#define CASE_LIGHT_PIN 4
-   #define CASE_LIGHT_PIN PA3
-   ```
+```cpp
+//#define CASE_LIGHT_MENU
+#define CASE_LIGHT_MENU
+```
 
-3. **Enable Case Light in the Menu**
+With menu control enabled:
 
-   If you want to control the case light via the menu, enable this option by changing:
-   ```cpp
-   //#define CASE_LIGHT_MENU
-   #define CASE_LIGHT_MENU
-   ```
-   If you enable this feature, the menus will look like the images below:
-   <div style="display: flex; justify-content: space-between;"> <img src="Photos/6.jpg" width="45%" /> <img src="Photos/7.jpg" width="45%" /> </div>
+<p>
+  <img src="Photos/6.jpg" width="45%" />
+  <img src="Photos/7.jpg" width="45%" />
+</p>
 
-5. **Optional: Enable Fast PWM(Reduces Flicker)**
+#### 4. Optional Fast PWM
 
-   To reduce flicker, especially at low brightness levels, enable high PWM frequency by changing:
-   ```cpp
-   //#define FAST_PWM_FAN
-   #define FAST_PWM_FAN
-   ```
+To reduce visible flicker at low brightness:
 
-6. **Set PWM Frequency**
+```cpp
+//#define FAST_PWM_FAN
+#define FAST_PWM_FAN
+```
 
-   If you enabled fast PWM in the previous step, enable the following to set the correct frequency:
-   ```cpp
-   //#define FAST_PWM_FAN_FREQUENCY 31400
-   #define FAST_PWM_FAN_FREQUENCY 31400
-   ```
+#### 5. Set Fast PWM Frequency
 
-7. **Set the Default State of the Case Light**
+```cpp
+//#define FAST_PWM_FAN_FREQUENCY 31400
+#define FAST_PWM_FAN_FREQUENCY 31400
+```
 
-   Define whether the case light should be ON or OFF by default when the printer is powered on. Modify this line:
-   ```cpp
-   #define CASE_LIGHT_DEFAULT_ON true
-   #define CASE_LIGHT_DEFAULT_ON false
-   ```
+This configures the documented **31.4 kHz** PWM frequency.
 
-   **Explanation**:  
-   - If you want the light to turn ON automatically when the printer starts, leave it as `true`.
-   - If you want the light to remain OFF when the printer starts, change it to `false`.
+#### 6. Set Startup State
 
-8. **Set the Default Brightness of the Case Light**
+```cpp
+#define CASE_LIGHT_DEFAULT_ON true
+#define CASE_LIGHT_DEFAULT_ON false
+```
 
-   Set the initial brightness level of the case light. Change the following line:
-   ```cpp
-   #define CASE_LIGHT_DEFAULT_BRIGHTNESS 105
-   #define CASE_LIGHT_DEFAULT_BRIGHTNESS 255
-   ```
+Use the desired value: `true` starts with the light enabled; `false` starts with it disabled.
 
-   **Explanation**:  
-   - The value `0` represents the minimum brightness.
-   - The value `255` represents the maximum brightness.
-   - You can adjust the brightness to your preference.
+#### 7. Set Default Brightness
 
-Once these changes are made, save the file and proceed to build the firmware for your printer. Flash the updated firmware to enable case lighting control.
+```cpp
+#define CASE_LIGHT_DEFAULT_BRIGHTNESS 105
+#define CASE_LIGHT_DEFAULT_BRIGHTNESS 255
+```
 
----
+The valid brightness range is **0–255**.
 
+## G-code Control
 
-## Notes and Warnings
+Marlin exposes case-light control through `M355`:
 
-- Ensure the mainboard is powered off and disconnected from all power sources before starting.
-- Double-check all connections against the schematic before powering on the printer.
-- Improper installation or faulty components may damage your mainboard.
+```text
+M355 [P<byte>] [S<bool>]
+```
 
----
+- `P<byte>`: brightness, 0–255
+- `S<bool>`: on/off state
 
-By following this guide, you can successfully enable case lighting control on your Ender3 V2 printer. If you encounter any issues or have suggestions for improvement, feel free to contribute or open an issue in this repository. Happy printing!
+This allows the light to be controlled manually, from printer interfaces that expose the command, or through G-code generated around a print workflow.
+
+## Verification Checklist
+
+Before normal use:
+
+- confirm the PA3-to-HC245 routing against the schematic;
+- verify the 10 Ω gate resistor and 100 kΩ pulldown;
+- verify MOSFET source, drain and gate connections;
+- confirm the LED load is rated for 24 V;
+- inspect for solder bridges and unintended shorts;
+- test on/off control before relying on brightness control;
+- verify `M355` and menu behavior after flashing the configured firmware.
+
+## Safety
+
+Incorrect wiring can damage the mainboard or connected lighting. Perform all soldering with the printer disconnected from power. The documented MOSFET voltage requirement and 24 V load requirement should be treated as minimum design constraints rather than optional substitutions.
+
+[← Return to the main upgrade guide](../README.md)

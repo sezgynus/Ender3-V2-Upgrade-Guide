@@ -1,94 +1,115 @@
-# Dil Seçimi
-[English](README.md) | [Türkçe](README-tr.md)
+# BFPTouch Sensör Kurulumu — Ender 3 V2
 
-# Ender3 V2 İçin BFPTouch Sensör Kurulumu
+[English](README.md) | [Türkçe](README-tr.md) | [← Ana Kılavuz](../README-tr.md)
 
-![Demo](Photos/2.gif)
+![BFPTouch demonstrasyonu](Photos/2.gif)
 
-Bu kılavuz, düşük bütçeli bir BLTouch klonu olan BFPTouch'un Ender3 V2 yazıcınıza nasıl kurulup yapılandırılacağına dair ayrıntılı talimatlar sağlar. BFPTouch, BLTouch işlevselliğini taklit eder ve uygun maliyetli 3D baskı iyileştirmeleri için tasarlanmıştır. Başarılı bir donanım kurulumu ve yazılım yapılandırması için bu kılavuzu izleyin.
+Bu kılavuz, Ender 3 V2 üzerinde uygulanmış BFPTouch kurulumunu belgeler. Modifikasyon; **3D baskılı montaj parçası**, **SG90 servo motor** ve **optik endstop** kullanarak BLTouch benzeri prob işlevi sağlar; aynı zamanda kontrolcüsüz BFPTouch tasarımının donanım ve firmware farklarını dikkate alır.
 
----
+## Hızlı Bakış
 
-## Genel Bakış
+| Alan | Uygulama |
+|---|---|
+| Hedef yazıcı | Creality Ender 3 V2 |
+| Prob yaklaşımı | BFPTouch / BLTouch benzeri tabla probu |
+| Hareket elemanı | SG90 servo |
+| Algılama | Optik endstop |
+| Montaj | 3D baskılı, sıkı geçme |
+| Anakart bağlantıları | V, G, IN, OUT |
+| Firmware seçenekleri | Önceden yapılandırılmış firmware veya manuel Marlin yapılandırması |
 
-BFPTouch, BLTouch'a bütçe dostu bir alternatif olup Ender3 V2 ile sorunsuz bir şekilde çalışacak şekilde tasarlanmıştır. BLTouch işlevselliğini taklit etmek için 3D baskılı bir montaj, küçük bir SG90 servo motor ve bir optik endstop kullanır. Montaj parçasını basarak ve birkaç basit adımı tamamlayarak, BFPTouch'u yazıcı kurulumunuza entegre edebilirsiniz.
+## BFPTouch ile BLTouch Arasındaki Fark
 
----
+BLTouch kendi kontrol elektroniğine sahiptir. Yazıcıdan gönderilen servo açı komutları sensör tarafından belirli işlemlere karşılık gelen komutlar olarak yorumlanır.
 
-## Gerekli Malzemeler
-
-Bu modifikasyonu tamamlamak için aşağıdakilere ihtiyacınız olacak:
-
-- **3D Baskılı BFPTouch Montaj Parçası**
-  - Montaj parçasını Thingiverse'den indirin: [https://www.thingiverse.com/thing:6918868](https://www.thingiverse.com/thing:6918868)
-  - PLA veya PETG kullanarak montaj parçasını en iyi sonuçlar için yazdırın.
-- **1 x SG90 Servo Motor**
-- **1 x Optik Endstop**
-- **Lehimleme Araçları**: Lehimleme cihazı, lehim ve gerekirse flux.
-- **Temel Araçlar**: Tornavidalar, pense ve kablo bağları.
-
----
-
-## Donanım Kurulumu
-
-1. **BFPTouch Montaj Parçasını Yazdırın**:
-   - Verilen Thingiverse bağlantısından 3D modelini indirin.
-   - Modeli tercih ettiğiniz 3D yazıcıyla yazdırın. Bileşenlerin doğru şekilde oturması için yazdırma kalitesinin yüksek olmasını sağlayın.
-
-2. **Bileşenleri Monte Edin**:
-   - SG90 servo motoru, yazdırılmış montaj parçasındaki belirlenmiş yuvaya yerleştirin.
-   - Optik endstopu sağlanan yuvaya sabitleyin.
-   - Kabloları, yazıcının hareketine müdahale etmeyecek şekilde düzenleyin.
-
-3. **BFPTouch'u Yazıcıya Monte Edin**:
-   - Yazdırılmış montaj parçasını, kurulu bileşenlerle birlikte vida yerine sıkı oturma tasarımı kullanarak Ender3 V2'ye takın.
-   - Montaj parçasının sıkı bir şekilde yerine oturduğundan emin olun.
-
-     <img src="Photos/4.jpg" width="200" />  <img src="Photos/2.jpg" width="200" /> <img src="Photos/3.gif" width="266" />
-   
-4. **Kablolamayı Bağlayın**:
-   - Aşağıdaki kablo bağlantılarını takip ederek kurulumu tamamlayın:
-
-     ```
-     +------------------+-----------------------------+
-     | Anakart Pinleri  | BFPTouch Pinleri            |
-     +------------------+-----------------------------+
-     | V                | SG90 VCC, Optik Endstop VCC |
-     | G                | SG90 GND, Optik Endstop GND |
-     | IN               | SG90 PWM Sinyali            |
-     | OUT              | Optik Endstop Çıkışı        |
-     +------------------+-----------------------------+
-      ```
-
-   - Tüm bağlantıların güvenli ve kısa devrelerden korunmuş olduğundan emin olun.
-
----
-
-## Neden BFPTouch İçin Özel Bir Yapılandırma Gereklidir?
-
-Genellikle, BFPTouch'un çalışma prensibi BLTouch'tan farklıdır. BLTouch, anakarttan gelen belirli servo sinyal açısını doğrudan açı komutları olarak değil, sensördeki bir mikrodenetleyici sayesinde belirli işlemler için talimat olarak yorumlar. Aşağıda, BLTouch için hangi açı değerlerinin hangi komutlara karşılık geldiğini gösteren bir görsel bulunmaktadır:
+Bu projede kullanılan BFPTouch üzerinde bir kontrolcü bulunmaz. Bu nedenle anakarttan gelen servo sinyali **SG90 açısını doğrudan** kontrol eder. BLTouch için komut anlamına gelen açılar BFPTouch mekanizmasını istenmeyen konumlara götürebilir veya mekanik çarpışmaya neden olabilir.
 
 <img src="Photos/6.png" width="800" />
 
-Buna karşılık, BFPTouch üzerinde herhangi bir denetleyiciye sahip değildir ve anakarttan gelen servo sinyali, SG90 servo motorunun açısını doğrudan kontrol eder. BFPTouch'un mekanik tasarımı nedeniyle, BLTouch komutlarına karşılık gelen açı değerleri, mekanik çarpışmalara neden olabilir. Bu nedenle, BFPTouch ile uyumlu hale getirmek için firmware'de belirli yapılandırmalar yapmamız gerekir.
+Bu nedenle BFPTouch, standart BLTouch komut-açı davranışının doğrudan varsayılması yerine doğrudan servo hareketine uygun firmware davranışı gerektirir.
 
----
+## Gerekli Donanım
 
-## Yazılım Yapılandırması
+- **3D baskılı BFPTouch montaj parçası**
+  - Model: [Thingiverse 6918868](https://www.thingiverse.com/thing:6918868)
+  - PLA veya PETG kullanılabilir.
+- **1 × SG90 servo motor**
+- **1 × optik endstop**
+- Gerektiğinde havya, lehim ve flux
+- Tornavida, pense ve kablo bağı
 
-Ender3 V2 firmware'inizi BFPTouch işlevselliği için yapılandırmanın iki yöntemi vardır:
+## Donanım Kurulumu
 
-### Seçenek 1: Önceden Derlenmiş Firmware Kullanımı
+### 1. Montaj Parçasını Basın
 
-Sağlanan depo bağlantısından önceden yapılandırılmış firmware'i indirip flaşlayın. Bu, çoğu kullanıcı için en basit yöntemdir.
+Referans verilen BFPTouch montaj parçasını; servo, optik endstop ve yazıcıya sıkı geçme bağlantısı için yeterli ölçü kalitesinde basın.
 
-Depo Bağlantısı: [https://github.com/sezgynus/Ender3V2S1](https://github.com/sezgynus/Ender3V2S1)
+### 2. Probu Monte Edin
 
-### Seçenek 2: Marlin Firmware'i Manuel Olarak Yapılandırma
+SG90 servo ve optik endstopu ilgili yuvalarına yerleştirin. Kabloları yazıcının hareketine müdahale etmeyecek şekilde yönlendirin.
 
-Firmware'i kendiniz yapılandırıp derlemeyi tercih ediyorsanız, bir sonraki bölümde verilen ayrıntılı talimatları izleyin. Marlin kaynak koduna ve uyumlu bir derleme ortamına sahip olduğunuzdan emin olun.
+### 3. Yazıcıya Takın
 
----
+Toplanan BFPTouch'u montaj parçasının sıkı geçme tasarımıyla Ender 3 V2'ye takın ve mekanik olarak sağlam olduğunu doğrulayın.
 
-BFPTouch kurulumunuzu ve yazılım yapılandırmanızı tamamlamak için sonraki adımlarda bizimle kalın!
-"""
+<p>
+  <img src="Photos/4.jpg" width="200" />
+  <img src="Photos/2.jpg" width="200" />
+  <img src="Photos/3.gif" width="266" />
+</p>
+
+### 4. Anakart Bağlantılarını Yapın
+
+| Anakart pini | BFPTouch bağlantısı |
+|---|---|
+| V | SG90 VCC + optik endstop VCC |
+| G | SG90 GND + optik endstop GND |
+| IN | SG90 PWM sinyali |
+| OUT | Optik endstop çıkışı |
+
+Enerji vermeden önce bağlantıları ve izolasyonu doğrulayın.
+
+## Firmware Yapılandırması
+
+Bu modifikasyon için iki firmware yolu belgelenmiştir.
+
+### Seçenek 1 — Önceden Yapılandırılmış Firmware
+
+Önceden yapılandırılmış firmware uygulaması ayrı [Ender3V2S1 deposunda](https://github.com/sezgynus/Ender3V2S1) bulunmaktadır.
+
+Bu seçenek firmware değişikliklerini manuel olarak tekrar etmeyi gerektirmez.
+
+### Seçenek 2 — Manuel Marlin Yapılandırması
+
+BFPTouch, yukarıda açıklanan doğrudan SG90 hareketine uygun Marlin yapılandırması gerektirir. Bu depo donanım gereksinimlerini ve standart BLTouch servo-açı varsayımlarının neden değiştirilmeden kullanılamayacağını belgeler.
+
+Ayrıntılı manuel Marlin parametre seti **bu depoda bulunmadığından**, belgelenmemiş değerler özellikle türetilmemiştir.
+
+## Doğrulama Materyalleri
+
+Depoda uygulanmış proba ait çeşitli fotoğraf ve GIF demonstrasyonları bulunmaktadır:
+
+| Materyal | Amaç |
+|---|---|
+| `Photos/1.gif` | BFPTouch demonstrasyonu |
+| `Photos/2.gif` | Kılavuzun üst kısmında kullanılan ana demonstrasyon |
+| `Photos/1.jpg`–`Photos/5.jpg` | Fiziksel kurulum referansları |
+| `Photos/3.gif` | Yakın montaj/mekanik referansı |
+| `Photos/6.png` | Kontrol farkını açıklamak için kullanılan BLTouch komut/açı referansı |
+
+## Güvenlik ve Mekanik Kontroller
+
+Homing veya probing işleminden önce:
+
+- probun herhangi bir parçaya çarpmadan açılıp kapanabildiğini doğrulayın;
+- optik endstop durumunun doğru değiştiğini kontrol edin;
+- kabloların hareket alanına girmediğinden emin olun;
+- otomatik Z hareketine güvenmeden önce servo hareketini kontrollü biçimde test edin.
+
+Doğrudan servo kontrol farkı önemlidir: başka bir prob mekanizmasına ait firmware ayarlarının mekanik olarak güvenli olduğu doğrulama yapılmadan varsayılmamalıdır.
+
+## Proje Kapsamı
+
+Bu alt kılavuz, depoda şu anda bulunan materyalle desteklenen BFPTouch donanım uygulamasını ve firmware yaklaşımını belgeler. Belgelenmemiş kalibrasyon değerleri veya Marlin parametreleri eklenmemiştir.
+
+[← Ana yükseltme kılavuzuna dön](../README-tr.md)
